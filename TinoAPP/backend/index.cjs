@@ -26,4 +26,12 @@ app.post('/api/orders', (req, res) => {
     });
 });
 
+// Agregar esto en backend/index.cjs
+app.get('/api/orders', (req, res) => {
+    db.all(`SELECT * FROM orders ORDER BY created_at DESC`, [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
 app.listen(PORT, () => console.log(`Backend escuchando en http://localhost:${PORT}`));

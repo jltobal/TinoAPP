@@ -18,7 +18,7 @@ function Header() {
           disabled
           className="bg-gray-700 text-gray-400 text-sm font-semibold py-2 px-4 rounded-md border border-gray-600 cursor-not-allowed uppercase tracking-wider"
         >
-          En desarrollo
+          ver ordenes
         </button>
       </div>
 

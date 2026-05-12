@@ -3,6 +3,7 @@ import HomePage from "./components/home";
 import OrderChecker from "./components/orderchecker";
 import OrderPage from "./components/order";
 import Header from './components/header';
+import ListOrders from "./components/listorders";
 import './App.css';
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/ordersystem" element={<OrderChecker />} />
           <Route path="/order" element={<OrderPage />} />
+          <Route path="/list" element={<ListOrders />} />
         </Routes>
       </main>
     </div>

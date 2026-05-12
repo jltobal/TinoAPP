@@ -67,6 +67,17 @@ function OrderChecker() {
         <p className="mt-6 text-gray-500 text-xs text-center italic">
           Presiona Enter para agregar el siguiente item
         </p>
+
+        {/* --- BOTÓN AGREGADO --- */}
+        <div className="mt-6 flex justify-center">
+          <button 
+            className="w-full bg-orange-600 hover:bg-orange-500 text-white font-black py-3 px-6 rounded-lg uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-orange-900/20"
+            onClick={() => console.log("Finalizando orden...")}
+          >
+            Finalizar Orden
+          </button>
+        </div>
+        {/* ---------------------- */}
       </div>
     </div>
   );
