@@ -8,7 +8,6 @@ const PORT = 8000;
 app.use(cors());
 app.use(express.json());
 
-// 1. Conexión a la Base de Datos
 const db = new sqlite3.Database('./tinoapp.db', (err) => {
     if (err) {
         console.error("Error crítico al abrir la DB:", err.message);
@@ -17,13 +16,12 @@ const db = new sqlite3.Database('./tinoapp.db', (err) => {
     console.log("--- TinoAPP Backend: Base de datos conectada ---");
 });
 
-// 2. Asegurar estructura (Similar a creator, pero silencioso)
 db.serialize(() => {
     db.run("PRAGMA foreign_keys = ON");
     db.run(`CREATE TABLE IF NOT EXISTS menu (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         descripcion TEXT NOT NULL,
-        price REAL NOT NULL
+        precio REAL NOT NULL
     )`);
     db.run(`CREATE TABLE IF NOT EXISTS orders (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -40,7 +38,17 @@ db.serialize(() => {
     )`);
 });
 
-// --- ENDPOINTS ---
+app.get('/api/menu/:id', (req, res) => {
+    const { id } = req.params;
+    db.get("SELECT * FROM menu WHERE id = ?", [id], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (row) {
+            res.json(row);
+        } else {
+            res.status(404).json({ message: "Producto no encontrado" });
+        }
+    });
+});
 
 app.get('/api/orders', (req, res) => {
     const sql = `
@@ -58,22 +66,28 @@ app.get('/api/orders', (req, res) => {
     });
 });
 
-// Crear una nueva orden
 app.post('/api/orders', (req, res) => {
     const { items, total_price } = req.body; 
     
+    if (!items || items.length === 0) {
+        return res.status(400).json({ error: "No se enviaron items" });
+    }
+
     db.run(`INSERT INTO orders (total_price) VALUES (?)`, [total_price], function(err) {
         if (err) return res.status(500).json({ error: err.message });
         
         const orderId = this.lastID;
         const stmt = db.prepare(`INSERT INTO order_items (order_id, menu_id, cantidad) VALUES (?, ?, ?)`);
         
-        items.forEach(item => {
-            stmt.run(orderId, item.menu_id, item.cantidad);
-        });
-        
-        stmt.finalize();
-        res.json({ success: true, orderId });
+        try {
+            items.forEach(item => {
+                stmt.run(orderId, item.menu_id, item.quantity || item.cantidad);
+            });
+            stmt.finalize();
+            res.json({ success: true, orderId });
+        } catch (insertError) {
+            res.status(500).json({ error: insertError.message });
+        }
     });
 });
 

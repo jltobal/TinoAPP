@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface Order {
   id: number;
@@ -10,6 +11,7 @@ interface Order {
 const ListOrders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetch('http://localhost:8000/api/orders')
@@ -28,7 +30,7 @@ const ListOrders = () => {
   }, []);
 
   const handleEdit = (orderId: number) => {
-    console.log(`Abriendo edición para la orden #${orderId}`);
+    navigate(`/order?id=${orderId}`);
   };
 
   const handlePrint = (orderId: number) => {
@@ -48,8 +50,8 @@ const ListOrders = () => {
           <p className="text-center text-gray-500">No hay órdenes registradas en tinoapp.db</p>
         ) : (
           orders.map((order) => (
-            <div 
-              key={order.id} 
+            <div
+              key={order.id}
               className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-5 shadow-lg flex flex-col gap-4 hover:border-orange-900/50 transition-colors"
             >
               <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
@@ -57,7 +59,7 @@ const ListOrders = () => {
                   <span className="text-xs font-bold text-orange-500 uppercase tracking-tighter">
                     Orden #{order.id?.toString().padStart(4, '0')}
                   </span>
-                  
+
                   <div className="text-sm text-gray-300">
                     {order.items_summary ? (
                       <ul className="list-none space-y-1">
@@ -85,13 +87,13 @@ const ListOrders = () => {
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-800/50">
-                <button 
+                <button
                   onClick={() => handleEdit(order.id)}
                   className="px-4 py-2 bg-gray-800 hover:bg-orange-700 text-xs font-bold uppercase tracking-widest rounded-lg transition-colors flex items-center gap-2"
                 >
                   <span>✏️</span> Editar
                 </button>
-                <button 
+                <button
                   onClick={() => handlePrint(order.id)}
                   className="px-4 py-2 bg-gray-800 hover:bg-blue-700 text-xs font-bold uppercase tracking-widest rounded-lg transition-colors flex items-center gap-2"
                 >
