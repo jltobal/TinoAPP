@@ -1,29 +1,38 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import logo from '../assets/PNG/TinoAPP_Logo_PNG_800px_Gris.png';
 
-function Header() {
+const Header = () => {
   return (
-    <nav className="w-full bg-[#1a1a1a] border-b border-gray-800 px-6 py-4 flex items-center justify-between shadow-md">
-      
-      <div className="flex items-center">
+    <header className="bg-[#1a1a1a] border-b border-gray-800 p-4 flex justify-between items-center">
+      <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
         <img 
           src={logo} 
-          alt="Logo Navbar" 
-          className="h-10 w-auto object-contain" 
+          alt="Tomi's Food Truck Logo" 
+          className="h-10 w-auto"
         />
-      </div>
+        <span className="ml-3 text-white font-black tracking-tighter uppercase hidden md:block">
+          Tomi's <span className="text-orange-600">Food Truck</span>
+        </span>
+      </Link>
 
-      <div>
-        <button 
-          disabled
-          className="bg-gray-700 text-gray-400 text-sm font-semibold py-2 px-4 rounded-md border border-gray-600 cursor-not-allowed uppercase tracking-wider"
+      <nav className="flex gap-4">
+        <Link 
+          to="/ordersystem" 
+          className="px-4 py-2 bg-orange-700 hover:bg-orange-600 text-white text-xs font-bold uppercase tracking-widest rounded-lg transition-colors"
         >
-          ver ordenes
-        </button>
-      </div>
+          Crear Orden
+        </Link>
 
-    </nav>
+        <Link 
+          to="/list" 
+          className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-xs font-bold uppercase tracking-widest rounded-lg transition-colors border border-gray-700"
+        >
+          Ver Órdenes
+        </Link>
+      </nav>
+    </header>
   );
-}
+};
 
 export default Header;
