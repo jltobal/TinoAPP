@@ -21,8 +21,10 @@ const ListOrders = () => {
         if (!res.ok) throw new Error('Error en el servidor');
         return res.json();
       })
-      .then((data) => {
-        setOrders(data);
+      .then((data: Order[]) => {
+        // CORRECCIÓN DE ORDEN: Ordenamos de mayor a menor por ID
+        const sortedOrders = [...data].sort((a, b) => b.id - a.id);
+        setOrders(sortedOrders);
         setLoading(false);
       })
       .catch((err) => {
@@ -49,8 +51,6 @@ const ListOrders = () => {
     const itemsArray = order.items_summary 
       ? order.items_summary.split(', ').map(itemStr => {
           const [cantidadStr, ...descParts] = itemStr.split('x ');
-          // En un sistema real, el precio vendría del backend. 
-          // Aquí lo dejamos en 0 o podrías calcularlo si tuvieras la data.
           return {
             cantidad: cantidadStr.trim(),
             descripcion: descParts.join('x ').trim(),
@@ -71,71 +71,31 @@ const ListOrders = () => {
     <div className="h-full bg-[#121212] text-white p-6 overflow-y-auto">
       <style>
         {`
-        .ticket-visual-hidden {
-            display: none;
-        }
-
+        .ticket-visual-hidden { display: none; }
         @media print {
-            @page { 
-                size: 80mm auto; 
-                margin: 0 !important; 
-            }
-
-            body * {
-                visibility: hidden;
-            }
-
-            .ticket-print-area, 
-            .ticket-print-area * {
+            @page { size: 80mm auto; margin: 0 !important; }
+            body * { visibility: hidden; }
+            .ticket-print-area, .ticket-print-area * {
                 visibility: visible !important;
                 display: block !important;
             }
-
             .ticket-print-area {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 72mm; /* Ajuste para evitar cortes en bordes */
-                padding: 4mm;
-                background: white;
-                color: black;
-                font-family: 'Courier New', Courier, monospace;
-                font-size: 12px;
+                position: absolute; left: 0; top: 0; width: 72mm; padding: 4mm;
+                background: white; color: black; font-family: 'Courier New', Courier, monospace; font-size: 12px;
             }
-
             .ticket-header { text-align: center; margin-bottom: 10px; }
             .ticket-logo { width: 140px; display: block; margin: 0 auto; }
-            
-            .ticket-table {
-                width: 100% !important;
-                display: table !important;
-                border-collapse: collapse;
-                margin-top: 5px;
-            }
+            .ticket-table { width: 100% !important; display: table !important; border-collapse: collapse; margin-top: 5px; }
             .ticket-table tr { display: table-row !important; }
             .ticket-table td { display: table-cell !important; padding: 2px 0; vertical-align: top; }
-            
             .col-qty { width: 15%; text-align: left; }
             .col-desc { width: 55%; text-align: left; }
             .col-price { width: 30%; text-align: right; }
-
             .ticket-divider { border-top: 1px dashed black; margin: 5px 0; }
-            .ticket-total-row {
-                display: flex !important;
-                justify-content: space-between;
-                align-items: baseline;
-                font-weight: bold;
-                margin-top: 5px;
-            }
+            .ticket-total-row { display: flex !important; justify-content: space-between; align-items: baseline; font-weight: bold; margin-top: 5px; }
             .total-label { font-size: 14px; }
             .total-amount { font-size: 22px; }
-            
-            .ticket-footer {
-                text-align: center;
-                font-size: 9px;
-                margin-top: 15px;
-                line-height: 1.2;
-            }
+            .ticket-footer { text-align: center; font-size: 9px; margin-top: 15px; line-height: 1.2; }
         }
         `}
       </style>
@@ -180,7 +140,6 @@ const ListOrders = () => {
         )}
       </div>
 
-      {/* TICKET DE IMPRESIÓN CORREGIDO */}
       {orderToPrint && (
         <div className="ticket-print-area ticket-visual-hidden">
           <div className="ticket-header">
@@ -188,32 +147,25 @@ const ListOrders = () => {
             <div style={{ fontSize: '16px', fontWeight: 'bold', marginTop: '5px' }}>ORDEN #{orderToPrint.id}</div>
             <div style={{ fontSize: '10px' }}>{orderToPrint.date}</div>
           </div>
-
           <div className="ticket-divider"></div>
-
           <table className="ticket-table">
             <tbody>
               {orderToPrint.items.map((item: any, index: number) => (
                 <tr key={index}>
                   <td className="col-qty">{item.cantidad} x</td>
                   <td className="col-desc">{item.descripcion}</td>
-                  <td className="col-price">
-                    {/* Si no hay precio unitario, se muestra vacío o el total del item si lo tuvieras */}
-                  </td>
+                  <td className="col-price"></td>
                 </tr>
               ))}
             </tbody>
           </table>
-
           <div className="ticket-divider"></div>
-
           <div className="ticket-total-row">
             <span className="total-label">TOTAL:</span>
             <span className="total-amount">
               ${orderToPrint.total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
             </span>
           </div>
-
           <div className="ticket-footer">
               <div>Documento no válido como factura</div>
               <div style={{ marginTop: '10px' }}>TOMI'S FOOD TRUCK</div>
