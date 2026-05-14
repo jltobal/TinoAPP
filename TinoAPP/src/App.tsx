@@ -18,7 +18,6 @@ function App() {
           <Route path="/ordersystem" element={<OrderChecker />} />
           <Route path="/order" element={<OrderPage />} />
           <Route path="/list" element={<ListOrders />} />
-          <Route path="/order" element={<OrderPage />} />
         </Routes>
       </main>
     </div>

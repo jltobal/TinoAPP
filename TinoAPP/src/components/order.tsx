@@ -1,139 +1,187 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 
-interface OrderItem {
-    id: string;
-    descripcion: string;
-    cantidad: string;
-    precio: string;
-}
+const OrderPage = () => {
+    const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
+    const orderId = searchParams.get('id');
+    
+    const [items, setItems] = useState<any[]>([]);
+    const [total, setTotal] = useState(0);
+    const [loading, setLoading] = useState(true);
 
-function OrderPage() {
-    // Capturamos el ID de la URL (ej: /order?id=1)
-    const location = useLocation();
-    const queryParams = new URLSearchParams(location.search);
-    const orderId = queryParams.get('id') || '0000';
-
-    const [items, setItems] = useState<OrderItem[]>([
-        { id: '1', descripcion: 'Papas Fritas Medianas', cantidad: '2', precio: '11000' }
-    ]);
-
-    const lastInputRef = useRef<HTMLInputElement>(null);
-
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
-        if (e.key === 'Enter') {
-            const currentItem = items[index];
-            if (currentItem.id.trim() !== '') {
-                const newItems = [...items];
-                if (currentItem.cantidad === '' || parseInt(currentItem.cantidad) === 0) {
-                    newItems[index].cantidad = '1';
-                }
-                if (index === items.length - 1) {
-                    setItems([...newItems, { id: '', descripcion: '', cantidad: '', precio: '' }]);
-                } else {
-                    setItems(newItems);
-                }
-            }
+    useEffect(() => {
+        if (orderId) {
+            fetch(`http://localhost:8000/api/orders/${orderId}`)
+                .then(res => res.json())
+                .then(data => {
+                    setItems(data.items || []);
+                    setTotal(data.total_price || 0);
+                    setLoading(false);
+                })
+                .catch(() => {
+                    alert("Error al cargar la orden");
+                    setLoading(false);
+                });
+        } else {
+            setLoading(false);
         }
-    };
+    }, [orderId]);
 
-    const handleChange = (index: number, field: keyof OrderItem, value: string) => {
+    useEffect(() => {
+        const newTotal = items.reduce((acc, item) => acc + (Number(item.precio) * Number(item.cantidad)), 0);
+        setTotal(newTotal);
+    }, [items]);
+
+    const handleCodeChange = async (index: number, code: string) => {
         const newItems = [...items];
-        if (field === 'id' || field === 'cantidad') {
-            if (/^\d*$/.test(value) && value !== '0') {
-                newItems[index][field] = value;
+        newItems[index].id = code;
+
+        if (code.length > 0) {
+            try {
+                const res = await fetch(`http://localhost:8000/api/menu/${code}`);
+                if (res.ok) {
+                    const product = await res.json();
+                    newItems[index] = {
+                        ...newItems[index],
+                        descripcion: product.descripcion,
+                        precio: product.price
+                    };
+                } else {
+                    newItems[index].descripcion = "No encontrado";
+                    newItems[index].precio = 0;
+                }
+            } catch (e) {
+                console.error(e);
             }
-        } else if (field === 'descripcion') {
-            newItems[index].descripcion = value;
         }
         setItems(newItems);
     };
 
+    const updateItem = (index: number, field: string, value: any) => {
+        const newItems = [...items];
+        newItems[index][field] = value;
+        setItems(newItems);
+    };
+
+    const addNewItem = () => {
+        setItems([...items, { id: '', descripcion: '', cantidad: 1, precio: 0 }]);
+    };
+
+    const removeItem = (index: number) => {
+        setItems(items.filter((_, i) => i !== index));
+    };
+
+    const saveOrder = async () => {
+        const validItems = items.filter(i => i.descripcion !== "No encontrado" && i.id !== '');
+
+        if (validItems.length === 0) {
+            alert("No se puede guardar una orden vacía. Debe agregar al menos un producto válido.");
+            return;
+        }
+
+        const body = {
+            items: validItems,
+            total_price: total
+        };
+
+        const method = orderId ? 'PUT' : 'POST';
+        const url = orderId ? `http://localhost:8000/api/orders/${orderId}` : `http://localhost:8000/api/orders`;
+
+        try {
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if (res.ok) {
+                navigate('/list');
+            }
+        } catch (e) {
+            alert("Error al guardar");
+        }
+    };
+
+    if (loading) return <div className="text-white p-6">Cargando...</div>;
+
     return (
-        <div className="h-full bg-[#121212] text-white p-8 flex flex-col items-center">
-            {/* Título en AZUL para diferenciar de CREAR (Naranja) */}
-            <h2 className="text-2xl font-black mb-8 uppercase tracking-widest text-blue-500">
-                Editar Orden #{orderId.toString().padStart(4, '0')}
+        <div className="p-6 bg-[#121212] min-h-screen text-white">
+            <h2 className="text-2xl font-bold mb-4 text-blue-500 uppercase">
+                {orderId ? `MODO EDICIÓN: ORDEN #${orderId}` : 'CREAR NUEVA ORDEN'}
             </h2>
+            
+            <div className="bg-[#1e1e1e] p-4 rounded-lg shadow-xl border border-gray-800">
+                <table className="w-full text-left">
+                    <thead>
+                        <tr className="border-b border-gray-700 text-gray-400 text-sm uppercase">
+                            <th className="p-2">COD</th>
+                            <th className="p-2">DESCRIPCIÓN</th>
+                            <th className="p-2">CANT.</th>
+                            <th className="p-2">PRECIO</th>
+                            <th className="p-2"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {items.length === 0 ? (
+                            <tr>
+                                <td colSpan={5} className="p-8 text-center text-gray-500 uppercase tracking-widest">
+                                    No hay productos en esta orden
+                                </td>
+                            </tr>
+                        ) : (
+                            items.map((item, index) => (
+                                <tr key={index} className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors">
+                                    <td className="p-2">
+                                        <input 
+                                            className="bg-gray-900 border border-gray-700 p-1 w-20 rounded text-center focus:border-blue-500 outline-none"
+                                            value={item.id}
+                                            onChange={(e) => handleCodeChange(index, e.target.value)}
+                                        />
+                                    </td>
+                                    <td className="p-2 font-medium">{item.descripcion || "---"}</td>
+                                    <td className="p-2">
+                                        <input 
+                                            type="number"
+                                            min="1"
+                                            className="bg-gray-900 border border-gray-700 p-1 w-20 rounded text-center focus:border-blue-500 outline-none"
+                                            value={item.cantidad}
+                                            onChange={(e) => updateItem(index, 'cantidad', e.target.value)}
+                                        />
+                                    </td>
+                                    <td className="p-2 text-gray-400">${item.precio}</td>
+                                    <td className="p-2">
+                                        <button 
+                                            onClick={() => removeItem(index)} 
+                                            className="text-red-500 hover:bg-red-500/10 p-2 rounded-full transition-colors"
+                                        >
+                                            ✕
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
 
-            <div className="w-full max-w-3xl bg-[#1a1a1a] rounded-xl p-6 shadow-2xl border border-gray-800">
-                <div className="flex flex-col gap-4">
+                <button 
+                    onClick={addNewItem}
+                    className="mt-6 bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded text-xs font-bold uppercase tracking-wider border border-gray-600 transition-all"
+                >
+                    + AGREGAR PRODUCTO
+                </button>
 
-                    <div className="grid grid-cols-[80px_1fr_80px_100px] gap-3 pb-2 border-b border-gray-700 text-xs font-bold uppercase text-gray-500 text-center">
-                        <span>Codigo</span>
-                        <span>Descripcion</span>
-                        <span>Cant.</span>
-                        <span>Precio</span>
-                    </div>
-
-                    {items.map((item, index) => (
-                        <div key={index} className="grid grid-cols-[80px_1fr_80px_100px] gap-3 items-center">
-
-                            <input
-                                ref={index === items.length - 1 ? lastInputRef : null}
-                                type="text"
-                                value={item.id}
-                                placeholder="0"
-                                onChange={(e) => handleChange(index, 'id', e.target.value)}
-                                onKeyDown={(e) => handleKeyDown(e, index)}
-                                className="bg-gray-800 border border-gray-700 rounded p-2 text-center focus:border-blue-500 focus:outline-none transition-colors"
-                            />
-
-                            <input
-                                type="text"
-                                value={item.descripcion}
-                                onChange={(e) => handleChange(index, 'descripcion', e.target.value)}
-                                className="bg-gray-800 border border-gray-700 rounded p-2 focus:border-blue-500 focus:outline-none transition-colors"
-                            />
-
-                            <input
-                                type="text"
-                                inputMode="numeric"
-                                value={item.cantidad}
-                                placeholder="1"
-                                onChange={(e) => handleChange(index, 'cantidad', e.target.value)}
-                                onKeyDown={(e) => handleKeyDown(e, index)}
-                                className="bg-gray-800 border border-gray-700 rounded p-2 text-center focus:border-blue-500 focus:outline-none transition-colors"
-                            />
-
-                            <div className="relative">
-                                <span className="absolute left-2 top-2 text-gray-600 text-sm">$</span>
-                                <input
-                                    type="text"
-                                    value={item.precio}
-                                    readOnly
-                                    className="w-full bg-[#141414] border border-gray-800 text-gray-500 rounded p-2 pl-5 text-right cursor-not-allowed focus:outline-none"
-                                />
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                <p className="mt-6 text-gray-500 text-[10px] text-center uppercase tracking-widest">
-                    Modo Edición Activo • Enter para procesar cambios
-                </p>
-
-                {/* --- BOTONES DE ACCIÓN INVERTIDOS --- */}
-                <div className="mt-6 flex flex-col md:flex-row gap-4">
-                    {/* Botón Guardar: Ahora a la izquierda y más discreto */}
-                    <button
-                        className="flex-1 bg-transparent border-2 border-blue-600/50 hover:border-blue-600 text-blue-400 hover:text-white font-black py-3 px-6 rounded-lg uppercase transition-all active:scale-[0.98]"
-                        onClick={() => console.log("Guardando cambios...")}
+                <div className="mt-8 flex justify-between items-center border-t border-gray-700 pt-6">
+                    <span className="text-2xl font-bold">TOTAL: ${total.toLocaleString()}</span>
+                    <button 
+                        onClick={saveOrder}
+                        className="bg-blue-600 hover:bg-blue-700 active:scale-95 px-10 py-3 rounded font-black uppercase tracking-tighter shadow-lg shadow-blue-900/20 transition-all"
                     >
-                        Guardar e imprimir
-                    </button>
-
-                    {/* Botón Guardar e Imprimir: Acción principal a la derecha y muy visible */}
-                    <button
-                        className="flex-[1.5] bg-blue-600 hover:bg-blue-500 text-white font-black py-3 px-6 rounded-lg uppercase transition-all shadow-lg shadow-blue-900/40 active:scale-[0.98] flex items-center justify-center gap-2"
-                        onClick={() => console.log("Guardando e imprimiendo...")}
-                    >
-                        Guardar
+                        {orderId ? 'Confirmar Cambios' : 'Finalizar Orden'}
                     </button>
                 </div>
             </div>
         </div>
     );
-}
+};
 
 export default OrderPage;
