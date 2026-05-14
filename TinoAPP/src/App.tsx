@@ -4,6 +4,7 @@ import OrderChecker from "./components/orderchecker";
 import OrderPage from "./components/order";
 import Header from './components/header';
 import ListOrders from "./components/listorders";
+import Menu from "./components/menu";
 
 import './App.css';
 
@@ -18,6 +19,7 @@ function App() {
           <Route path="/ordersystem" element={<OrderChecker />} />
           <Route path="/order" element={<OrderPage />} />
           <Route path="/list" element={<ListOrders />} />
+          <Route path="/menu" element={<Menu />} />
         </Routes>
       </main>
     </div>

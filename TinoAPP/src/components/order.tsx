@@ -34,6 +34,9 @@ const OrderPage = () => {
     }, [items]);
 
     const handleCodeChange = async (index: number, code: string) => {
+        // Solo aceptamos números para el código
+        if (!/^\d*$/.test(code)) return;
+
         const newItems = [...items];
         newItems[index].id = code;
 
@@ -58,14 +61,17 @@ const OrderPage = () => {
         setItems(newItems);
     };
 
-    const updateItem = (index: number, field: string, value: any) => {
+    const updateItem = (index: number, field: string, value: string) => {
+        // Validación para que cantidad solo acepte números
+        if (field === 'cantidad' && !/^\d*$/.test(value)) return;
+        
         const newItems = [...items];
         newItems[index][field] = value;
         setItems(newItems);
     };
 
     const addNewItem = () => {
-        setItems([...items, { id: '', descripcion: '', cantidad: 1, precio: 0 }]);
+        setItems([...items, { id: '', descripcion: '', cantidad: '1', precio: 0 }]);
     };
 
     const removeItem = (index: number) => {
@@ -76,7 +82,7 @@ const OrderPage = () => {
         const validItems = items.filter(i => i.descripcion !== "No encontrado" && i.id !== '');
 
         if (validItems.length === 0) {
-            alert("No se puede guardar una orden vacía. Debe agregar al menos un producto válido.");
+            alert("No se puede guardar una orden vacía.");
             return;
         }
 
@@ -105,54 +111,80 @@ const OrderPage = () => {
     if (loading) return <div className="text-white p-6">Cargando...</div>;
 
     return (
-        <div className="p-6 bg-[#121212] min-h-screen text-white">
-            <h2 className="text-2xl font-bold mb-4 text-blue-500 uppercase">
-                {orderId ? `MODO EDICIÓN: ORDEN #${orderId}` : 'CREAR NUEVA ORDEN'}
+        <div className="p-8 bg-[#121212] min-h-screen text-white flex flex-col items-center">
+            {/* CSS para quitar flechas del input number */}
+            <style>
+                {`
+                    input::-webkit-outer-spin-button,
+                    input::-webkit-inner-spin-button {
+                        -webkit-appearance: none;
+                        margin: 0;
+                    }
+                    input[type=number] {
+                        -moz-appearance: textfield;
+                    }
+                `}
+            </style>
+
+            <h2 className="text-2xl font-black mb-8 uppercase tracking-widest text-blue-500 text-center">
+                {orderId ? `MODO EDICIÓN: ORDEN #${orderId.padStart(4, '0')}` : 'CREAR NUEVA ORDEN'}
             </h2>
             
-            <div className="bg-[#1e1e1e] p-4 rounded-lg shadow-xl border border-gray-800">
-                <table className="w-full text-left">
+            {/* Contenedor centrado y con ancho máximo como en la creación */}
+            <div className="w-full max-w-4xl bg-[#1a1a1a] rounded-xl p-6 shadow-2xl border border-gray-800">
+                <table className="w-full text-left border-separate border-spacing-y-3">
                     <thead>
-                        <tr className="border-b border-gray-700 text-gray-400 text-sm uppercase">
-                            <th className="p-2">COD</th>
-                            <th className="p-2">DESCRIPCIÓN</th>
-                            <th className="p-2">CANT.</th>
-                            <th className="p-2">PRECIO</th>
-                            <th className="p-2"></th>
+                        <tr className="text-gray-500 text-xs font-bold uppercase tracking-wider text-center">
+                            <th className="pb-2 w-24">Cod</th>
+                            <th className="pb-2 text-left px-4">Descripción</th>
+                            <th className="pb-2 w-24">Cant.</th>
+                            <th className="pb-2 w-32">Precio</th>
+                            <th className="pb-2 w-10"></th>
                         </tr>
                     </thead>
                     <tbody>
                         {items.length === 0 ? (
                             <tr>
-                                <td colSpan={5} className="p-8 text-center text-gray-500 uppercase tracking-widest">
+                                <td colSpan={5} className="p-12 text-center text-gray-600 uppercase tracking-widest text-sm">
                                     No hay productos en esta orden
                                 </td>
                             </tr>
                         ) : (
                             items.map((item, index) => (
-                                <tr key={index} className="border-b border-gray-800 hover:bg-gray-800/50 transition-colors">
-                                    <td className="p-2">
+                                <tr key={index} className="group">
+                                    <td className="text-center">
                                         <input 
-                                            className="bg-gray-900 border border-gray-700 p-1 w-20 rounded text-center focus:border-blue-500 outline-none"
+                                            className="bg-gray-800 border border-gray-700 p-3 w-20 rounded text-center focus:border-blue-500 outline-none transition-colors"
                                             value={item.id}
                                             onChange={(e) => handleCodeChange(index, e.target.value)}
                                         />
                                     </td>
-                                    <td className="p-2 font-medium">{item.descripcion || "---"}</td>
-                                    <td className="p-2">
+                                    <td className="px-4">
+                                        <div className="bg-[#141414] border border-gray-800 text-gray-400 rounded p-3 italic">
+                                            {item.descripcion || "---"}
+                                        </div>
+                                    </td>
+                                    <td className="text-center">
                                         <input 
-                                            type="number"
-                                            min="1"
-                                            className="bg-gray-900 border border-gray-700 p-1 w-20 rounded text-center focus:border-blue-500 outline-none"
+                                            type="text"
+                                            inputMode="numeric"
+                                            className="bg-gray-800 border border-gray-700 p-3 w-20 rounded text-center focus:border-blue-500 outline-none transition-colors"
                                             value={item.cantidad}
                                             onChange={(e) => updateItem(index, 'cantidad', e.target.value)}
                                         />
                                     </td>
-                                    <td className="p-2 text-gray-400">${item.precio}</td>
-                                    <td className="p-2">
+                                    <td>
+                                        <div className="relative">
+                                            <span className="absolute left-3 top-3 text-gray-600">$</span>
+                                            <div className="w-full bg-[#141414] border border-gray-800 text-gray-500 rounded p-3 pl-7 text-right">
+                                                {item.precio || 0}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="text-right">
                                         <button 
                                             onClick={() => removeItem(index)} 
-                                            className="text-red-500 hover:bg-red-500/10 p-2 rounded-full transition-colors"
+                                            className="text-gray-600 hover:text-red-500 transition-colors p-2 text-xl"
                                         >
                                             ✕
                                         </button>
@@ -165,16 +197,18 @@ const OrderPage = () => {
 
                 <button 
                     onClick={addNewItem}
-                    className="mt-6 bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded text-xs font-bold uppercase tracking-wider border border-gray-600 transition-all"
+                    className="mt-4 flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-xs font-bold uppercase tracking-widest px-2"
                 >
-                    + AGREGAR PRODUCTO
+                    <span className="text-lg">+</span> Agregar Producto
                 </button>
 
-                <div className="mt-8 flex justify-between items-center border-t border-gray-700 pt-6">
-                    <span className="text-2xl font-bold">TOTAL: ${total.toLocaleString()}</span>
+                <div className="mt-10 flex flex-col md:flex-row justify-between items-center gap-6 border-t border-gray-800 pt-8">
+                    <span className="text-3xl font-black text-white uppercase tracking-tighter">
+                        Total: <span className="text-blue-500">${total.toLocaleString('es-AR')}</span>
+                    </span>
                     <button 
                         onClick={saveOrder}
-                        className="bg-blue-600 hover:bg-blue-700 active:scale-95 px-10 py-3 rounded font-black uppercase tracking-tighter shadow-lg shadow-blue-900/20 transition-all"
+                        className="w-full md:w-auto bg-blue-600 hover:bg-blue-500 active:scale-95 px-12 py-4 rounded-lg font-black uppercase tracking-widest shadow-[0_0_20px_rgba(37,99,235,0.2)] transition-all text-white"
                     >
                         {orderId ? 'Confirmar Cambios' : 'Finalizar Orden'}
                     </button>

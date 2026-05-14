@@ -9,11 +9,26 @@ interface Order {
   items_summary: string | null;
 }
 
+interface DailySummary {
+  timestamp: string;
+  items: { [key: string]: number };
+  totalOrders: number;
+  totalRevenue: number;
+}
+
 const ListOrders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [orderToPrint, setOrderToPrint] = useState<any>(null);
+  const [summaryToPrint, setSummaryToPrint] = useState<DailySummary | null>(null);
   const navigate = useNavigate();
+
+  // Función auxiliar para normalizar fechas de la DB
+  const parseDBDate = (dateStr: string) => {
+    // Si el string no termina en Z, se la agregamos para que JS lo tome como UTC
+    const normalizedStr = dateStr.endsWith('Z') ? dateStr : `${dateStr.replace(' ', 'T')}Z`;
+    return new Date(normalizedStr);
+  };
 
   useEffect(() => {
     fetch('http://localhost:8000/api/orders')
@@ -22,7 +37,6 @@ const ListOrders = () => {
         return res.json();
       })
       .then((data: Order[]) => {
-        // CORRECCIÓN DE ORDEN: Ordenamos de mayor a menor por ID
         const sortedOrders = [...data].sort((a, b) => b.id - a.id);
         setOrders(sortedOrders);
         setLoading(false);
@@ -34,37 +48,71 @@ const ListOrders = () => {
   }, []);
 
   useEffect(() => {
-    if (orderToPrint) {
+    if (orderToPrint || summaryToPrint) {
       const timer = setTimeout(() => {
         window.print();
         setOrderToPrint(null);
+        setSummaryToPrint(null);
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [orderToPrint]);
+  }, [orderToPrint, summaryToPrint]);
 
   const handleEdit = (orderId: number) => {
     navigate(`/order?id=${orderId}`);
   };
 
   const handlePrint = (order: Order) => {
-    const itemsArray = order.items_summary 
+    const itemsArray = order.items_summary
       ? order.items_summary.split(', ').map(itemStr => {
-          const [cantidadStr, ...descParts] = itemStr.split('x ');
-          return {
-            cantidad: cantidadStr.trim(),
-            descripcion: descParts.join('x ').trim(),
-            precio: 0 
-          };
-        })
+        const [cantidadStr, ...descParts] = itemStr.split('x ');
+        return {
+          cantidad: cantidadStr.trim(),
+          descripcion: descParts.join('x ').trim(),
+          precio: 0
+        };
+      })
       : [];
 
     setOrderToPrint({
       id: order.id.toString().padStart(4, '0'),
       items: itemsArray,
       total: order.total_price,
-      date: new Date(order.date).toLocaleString('es-AR')
+      date: parseDBDate(order.date).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })
     });
+  };
+
+  const handleDailySummary = () => {
+    const now = new Date();
+    const eightHoursAgo = now.getTime() - (8 * 60 * 60 * 1000);
+
+    const recentOrders = orders.filter(order => {
+      const orderTime = parseDBDate(order.date).getTime();
+      return orderTime >= eightHoursAgo && orderTime <= now.getTime();
+    });
+
+    const summary: DailySummary = {
+      timestamp: now.toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }),
+      items: {},
+      totalOrders: recentOrders.length,
+      totalRevenue: 0
+    };
+
+    recentOrders.forEach(order => {
+      summary.totalRevenue += order.total_price;
+      if (order.items_summary) {
+        order.items_summary.split(', ').forEach(itemStr => {
+          const parts = itemStr.split('x ');
+          if (parts.length >= 2) {
+            const qty = parseInt(parts[0]);
+            const desc = parts.slice(1).join('x ').trim();
+            summary.items[desc] = (summary.items[desc] || 0) + qty;
+          }
+        });
+      }
+    });
+
+    setSummaryToPrint(summary);
   };
 
   return (
@@ -88,17 +136,23 @@ const ListOrders = () => {
             .ticket-table { width: 100% !important; display: table !important; border-collapse: collapse; margin-top: 5px; }
             .ticket-table tr { display: table-row !important; }
             .ticket-table td { display: table-cell !important; padding: 2px 0; vertical-align: top; }
-            .col-qty { width: 15%; text-align: left; }
-            .col-desc { width: 55%; text-align: left; }
-            .col-price { width: 30%; text-align: right; }
-            .ticket-divider { border-top: 1px dashed black; margin: 5px 0; }
-            .ticket-total-row { display: flex !important; justify-content: space-between; align-items: baseline; font-weight: bold; margin-top: 5px; }
-            .total-label { font-size: 14px; }
-            .total-amount { font-size: 22px; }
-            .ticket-footer { text-align: center; font-size: 9px; margin-top: 15px; line-height: 1.2; }
+            .col-qty { width: 20%; text-align: left; }
+            .col-desc { width: 80%; text-align: left; }
+            .ticket-divider { border-top: 1px dashed black; margin: 8px 0; }
+            .summary-item { display: flex; justify-content: space-between; margin-bottom: 2px; }
+            .ticket-footer { text-align: center; font-size: 10px; margin-top: 15px; line-height: 1.4; }
         }
         `}
       </style>
+
+      <div className="max-w-4xl mx-auto mb-6">
+        <button
+          onClick={handleDailySummary}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-xl uppercase tracking-[0.2em] shadow-lg transition-all active:scale-[0.98] border border-blue-400/30"
+        >
+          Generar Resumen Diario
+        </button>
+      </div>
 
       <h2 className="text-2xl font-black mb-8 uppercase tracking-widest text-orange-600 text-center">
         Historial de Órdenes
@@ -124,7 +178,9 @@ const ListOrders = () => {
                 </div>
                 <div className="flex flex-row md:flex-col items-center md:items-end justify-between gap-2">
                   <span className="text-xl font-black text-white">${order.total_price?.toLocaleString('es-AR')}</span>
-                  <span className="text-[10px] text-gray-500 uppercase">{new Date(order.date).toLocaleString('es-AR')}</span>
+                  <span className="text-[10px] text-gray-500 uppercase">
+                    {parseDBDate(order.date).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })}
+                  </span>
                 </div>
               </div>
               <div className="flex justify-end gap-3 pt-4 border-t border-gray-800/50">
@@ -140,6 +196,7 @@ const ListOrders = () => {
         )}
       </div>
 
+      {/* TICKET INDIVIDUAL */}
       {orderToPrint && (
         <div className="ticket-print-area ticket-visual-hidden">
           <div className="ticket-header">
@@ -154,23 +211,52 @@ const ListOrders = () => {
                 <tr key={index}>
                   <td className="col-qty">{item.cantidad} x</td>
                   <td className="col-desc">{item.descripcion}</td>
-                  <td className="col-price"></td>
                 </tr>
               ))}
             </tbody>
           </table>
           <div className="ticket-divider"></div>
-          <div className="ticket-total-row">
-            <span className="total-label">TOTAL:</span>
-            <span className="total-amount">
-              ${orderToPrint.total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}
-            </span>
+          <div style={{ textAlign: 'right', fontWeight: 'bold' }}>
+            <span>TOTAL: ${orderToPrint.total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
           </div>
           <div className="ticket-footer">
-              <div>Documento no válido como factura</div>
-              <div style={{ marginTop: '10px' }}>TOMI'S FOOD TRUCK</div>
-              <div>Olavarría, Buenos Aires</div>
-              <div style={{ marginTop: '5px' }}>*** GRACIAS POR SU COMPRA ***</div>
+            <div>Documento no válido como factura</div>
+            <div style={{ marginTop: '5px' }}>TOMI'S FOOD TRUCK</div>
+            <div>*** GRACIAS POR SU COMPRA ***</div>
+          </div>
+        </div>
+      )}
+
+      {/* RESUMEN DIARIO */}
+      {summaryToPrint && (
+        <div className="ticket-print-area ticket-visual-hidden">
+          <div className="ticket-header">
+            <img src={logoPrinter} className="ticket-logo" alt="Logo" />
+            <div style={{ fontSize: '16px', fontWeight: 'bold', marginTop: '10px', textTransform: 'uppercase' }}>Resumen Diario</div>
+            <div style={{ fontSize: '11px' }}>{summaryToPrint.timestamp}</div>
+          </div>
+          <div className="ticket-divider"></div>
+          <div style={{ padding: '5px 0' }}>
+            {Object.entries(summaryToPrint.items).map(([desc, qty]) => (
+              <div key={desc} className="summary-item">
+                <span>{desc}</span>
+                <span style={{ fontWeight: 'bold' }}>= {qty}</span>
+              </div>
+            ))}
+          </div>
+          <div className="ticket-divider"></div>
+          <div className="summary-item" style={{ fontSize: '13px' }}>
+            <span>Ordenes totales=</span>
+            <span style={{ fontWeight: 'bold' }}>{summaryToPrint.totalOrders}</span>
+          </div>
+          <div className="summary-item" style={{ fontSize: '13px' }}>
+            <span>Ingresos=</span>
+            <span style={{ fontWeight: 'bold' }}>${summaryToPrint.totalRevenue.toLocaleString('es-AR')}</span>
+          </div>
+          <div className="ticket-footer">
+            <div>- Documento de control -</div>
+            <div>- No valido como factura -</div>
+            <div style={{ marginTop: '10px' }}>TinoAPP v2.0</div>
           </div>
         </div>
       )}
