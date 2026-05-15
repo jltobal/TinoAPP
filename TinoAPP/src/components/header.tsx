@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import logo from '../assets/PNG/TinoAPP_Logo_PNG_800px_Gris.png';
+import logo from '../assets/JPG/Logo_Color_800px_JPG.jpg';
 
 const Header = () => {
   return (
@@ -9,10 +9,10 @@ const Header = () => {
         <img 
           src={logo} 
           alt="Tomi's Food Truck Logo" 
-          className="h-10 w-auto"
+          className="h-12 w-auto"
         />
         <span className="ml-3 text-white font-black tracking-tighter uppercase hidden md:block">
-          Tomi's <span className="text-orange-600">Food Truck</span>
+          El Clasico de Siempre
         </span>
       </Link>
 

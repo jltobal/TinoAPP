@@ -19,7 +19,7 @@ function HomePage() {
     
       <div className="w-full flex justify-center mb-16">
         <img
-          src="./src/assets/PNG/TinoAPP_Logo_PNG_800px_Gris.png"
+          src="./src/assets/JPG/Logo_Color_800px_JPG.jpg"
           alt="Tomi's Food Truck Logo"
           className="w-[60%] max-w-[300px] h-auto object-contain"
         />

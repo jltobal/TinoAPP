@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import logoPrinter from '../assets/JPG/TinoAPP_Logo_Printer_350px_JPG.jpg';
+import logoPrinter from '../assets/JPG/Logo_ByN_350px_jpg.jpg';
 
 interface OrderItem {
   id: string;
