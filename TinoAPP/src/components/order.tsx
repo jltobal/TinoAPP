@@ -215,5 +215,3 @@ const OrderPage = () => {
 };
 
 export default OrderPage;
-
-//Pagina para listar la orden individual, editar e imprimir. 

@@ -196,7 +196,6 @@ const ListOrders = () => {
         )}
       </div>
 
-// IMPRESION DE TICKET INDIVIDUAL
 
       {orderToPrint && (
         <div className="ticket-print-area ticket-visual-hidden">
@@ -228,7 +227,6 @@ const ListOrders = () => {
         </div>
       )}
 
-//IMPRESION DE RESUMEN DIARIO
 
       {summaryToPrint && (
         <div className="ticket-print-area ticket-visual-hidden">
