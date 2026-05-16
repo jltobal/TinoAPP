@@ -87,3 +87,5 @@ app.put('/api/orders/:id', (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`Backend en puerto ${PORT}`));
+
+//Inicia la base de datos y establece los endpoints.

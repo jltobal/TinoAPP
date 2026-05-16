@@ -6,6 +6,10 @@ interface MenuItem {
   price: number;
 }
 
+// PAGINA PARA LISTAR Y EDITAR EL MENU - AUTOGESTION DEL USUARIO -
+
+//PAGINA INCOMPLETA - EN DESAROLLO
+
 const Menu = () => {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,7 +94,6 @@ const Menu = () => {
         Gestión de Menú
       </h2>
 
-      {/* FORMULARIO NUEO PRODUCTO */}
       <div className="max-w-3xl mx-auto mb-10 bg-[#1a1a1a] p-6 rounded-xl border border-gray-800 shadow-xl">
         <h3 className="text-[10px] font-bold text-gray-500 uppercase mb-4 tracking-[0.2em]">Nuevo Producto</h3>
         <form onSubmit={handleAddItem} className="flex flex-col md:flex-row gap-4 items-end">
@@ -121,7 +124,6 @@ const Menu = () => {
         </form>
       </div>
 
-      {/* TABLA DE PRODUCTOS (LISTADO) */}
       <div className="max-w-4xl mx-auto bg-[#1a1a1a] rounded-xl border border-gray-800 shadow-2xl overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
@@ -143,7 +145,6 @@ const Menu = () => {
                     #{item.id.toString().padStart(3, '0')}
                   </td>
                   
-                  {/* NOMBRE EDITABLE */}
                   <td className="p-4">
                     {editingId === item.id ? (
                       <input 
@@ -157,7 +158,6 @@ const Menu = () => {
                     )}
                   </td>
 
-                  {/* PRECIO EDITABLE */}
                   <td className="p-4 text-right font-mono font-bold">
                     {editingId === item.id ? (
                       <input 
@@ -171,7 +171,6 @@ const Menu = () => {
                     )}
                   </td>
 
-                  {/* ACCIONES */}
                   <td className="p-4 text-center">
                     <div className="flex justify-center gap-3">
                       {editingId === item.id ? (

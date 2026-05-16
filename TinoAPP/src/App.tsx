@@ -5,6 +5,7 @@ import OrderPage from "./components/order";
 import Header from './components/header';
 import ListOrders from "./components/listorders";
 import Menu from "./components/menu";
+import Footer from "./components/footer";
 
 import './App.css';
 
@@ -22,6 +23,8 @@ function App() {
           <Route path="/menu" element={<Menu />} />
         </Routes>
       </main>
+      
+      <Footer />
     </div>
   );
 }

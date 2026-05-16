@@ -49,3 +49,5 @@ db.serialize(() => {
         console.log("--- Estructura de base de datos finalizada ---");
     });
 });
+
+//Creacion de la base de datos.

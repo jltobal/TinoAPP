@@ -8,18 +8,12 @@ const db = new sqlite3.Database('./tinoapp.db', (err) => {
     console.log("Conectado para testeo relacional masivo.");
 });
 
-// Creador de menu para testeo 
+//GARGAR MENU HARDCODE
 const menuItems = [
-    { desc: 'Hamburguesa Simple', price: 8500 },
-    { desc: 'Hamburguesa Completa', price: 12500 },
-    { desc: 'Super Pancho', price: 4500 },
-    { desc: 'Papas Fritas Medianas', price: 5500 },
-    { desc: 'Papas con Cheddar', price: 7500 },
-    { desc: 'Gaseosa 500ml', price: 2500 },
-    { desc: 'Cerveza Lata', price: 3500 },
-    { desc: 'Empanada Carne', price: 1200 },
-    { desc: 'Combo Tino Max', price: 18000 },
-    { desc: 'Postre Helado', price: 3000 }
+    { desc: 'Hamburguesa Super Paty', price: 12000 },
+    { desc: 'Papas Fritas', price: 5000 },
+    { desc: 'Salad Bar', price: 15000 },
+    { desc: 'Bebida', price: 5000 }
 ];
 
 db.serialize(() => {
@@ -30,9 +24,12 @@ db.serialize(() => {
     });
     menuStmt.finalize();
 
+    /*
+
+    Generador automatico de ordenes (TEST)
+
     console.log("--- Generando 20 Órdenes Aleatorias ---");
     
-    // GENERADOR DE ORDENES - Testeo de bbdd
     for (let i = 0; i < 20; i++) {
   
         db.run("INSERT INTO orders (total_price) VALUES (0)", function(err) {
@@ -58,4 +55,5 @@ db.serialize(() => {
             console.log(`[TEST] Orden #${orderId} creada. Total: $${orderTotal}`);
         });
     }
+        */
 });

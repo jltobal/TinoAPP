@@ -1,6 +1,5 @@
 const sqlite3 = require('sqlite3').verbose();
 
-// Conexión a la base de datos central
 const db = new sqlite3.Database('./tinoapp.db', (err) => {
     if (err) {
         console.error("Error al abrir la base de datos:", err.message);
@@ -37,3 +36,5 @@ db.serialize(() => {
         db.close();
     });
 });
+
+//Elimina las tablas, no el contenido. Codigo para debug y control de errores. 

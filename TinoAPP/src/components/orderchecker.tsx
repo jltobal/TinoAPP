@@ -19,12 +19,10 @@ function OrderChecker() {
 
   const lastInputRef = useRef<HTMLInputElement>(null);
 
-  // Foco automático en el nuevo campo de código al añadir fila
   useEffect(() => {
     lastInputRef.current?.focus();
   }, [items.length]);
 
-  // Manejo de impresión y reset
   useEffect(() => {
     if (orderToPrint) {
       const timer = setTimeout(() => {
@@ -96,17 +94,13 @@ function OrderChecker() {
       });
 
       if (response.ok) {
-        // 2. Obtener todas las órdenes para asegurar el ID real
         const lastOrderRes = await fetch('http://localhost:8000/api/orders');
         const allOrders = await lastOrderRes.json();
 
-        // CORRECCIÓN CRÍTICA: Buscar el ID máximo numéricamente
-        // No importa si el JSON viene ordenado de arriba a abajo o viceversa
         const lastOrder = allOrders.reduce((prev: any, current: any) => {
           return (prev.id > current.id) ? prev : current;
         });
 
-        // 3. Preparar impresión con el ID verificado
         setOrderToPrint({
           id: (lastOrder.id).toString().padStart(4, '0'),
           items: validItems,
@@ -186,7 +180,6 @@ function OrderChecker() {
 
       <div className="w-full max-w-4xl bg-[#1a1a1a] rounded-xl p-6 shadow-2xl border border-gray-800">
         <div className="flex flex-col gap-4">
-          {/* Header de la tabla según image_bf27fb.png */}
           <div className="grid grid-cols-[100px_1fr_100px_120px] gap-4 pb-2 border-b border-gray-700 text-xs font-bold uppercase text-gray-500 text-center">
             <span>Codigo</span>
             <span>Descripcion</span>
@@ -242,7 +235,6 @@ function OrderChecker() {
         </button>
       </div>
 
-      {/* TICKET DE IMPRESIÓN (Basado en mockup image_bf3438.png) */}
       {orderToPrint && (
         <div className="ticket-print-area ticket-visual-hidden">
           <div className="ticket-header">

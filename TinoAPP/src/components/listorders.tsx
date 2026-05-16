@@ -84,7 +84,7 @@ const ListOrders = () => {
 
   const handleDailySummary = () => {
     const now = new Date();
-    const eightHoursAgo = now.getTime() - (8 * 60 * 60 * 1000);
+    const eightHoursAgo = now.getTime() - (12 * 60 * 60 * 1000); //Imprime ordenes desde el momento actual hasta 12 horas atras
 
     const recentOrders = orders.filter(order => {
       const orderTime = parseDBDate(order.date).getTime();
@@ -196,7 +196,8 @@ const ListOrders = () => {
         )}
       </div>
 
-      {/* TICKET INDIVIDUAL */}
+// IMPRESION DE TICKET INDIVIDUAL
+
       {orderToPrint && (
         <div className="ticket-print-area ticket-visual-hidden">
           <div className="ticket-header">
@@ -227,7 +228,8 @@ const ListOrders = () => {
         </div>
       )}
 
-      {/* RESUMEN DIARIO */}
+//IMPRESION DE RESUMEN DIARIO
+
       {summaryToPrint && (
         <div className="ticket-print-area ticket-visual-hidden">
           <div className="ticket-header">

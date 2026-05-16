@@ -34,7 +34,6 @@ const OrderPage = () => {
     }, [items]);
 
     const handleCodeChange = async (index: number, code: string) => {
-        // Solo aceptamos números para el código
         if (!/^\d*$/.test(code)) return;
 
         const newItems = [...items];
@@ -62,7 +61,6 @@ const OrderPage = () => {
     };
 
     const updateItem = (index: number, field: string, value: string) => {
-        // Validación para que cantidad solo acepte números
         if (field === 'cantidad' && !/^\d*$/.test(value)) return;
         
         const newItems = [...items];
@@ -112,7 +110,6 @@ const OrderPage = () => {
 
     return (
         <div className="p-8 bg-[#121212] min-h-screen text-white flex flex-col items-center">
-            {/* CSS para quitar flechas del input number */}
             <style>
                 {`
                     input::-webkit-outer-spin-button,
@@ -130,7 +127,6 @@ const OrderPage = () => {
                 {orderId ? `MODO EDICIÓN: ORDEN #${orderId.padStart(4, '0')}` : 'CREAR NUEVA ORDEN'}
             </h2>
             
-            {/* Contenedor centrado y con ancho máximo como en la creación */}
             <div className="w-full max-w-4xl bg-[#1a1a1a] rounded-xl p-6 shadow-2xl border border-gray-800">
                 <table className="w-full text-left border-separate border-spacing-y-3">
                     <thead>
@@ -219,3 +215,5 @@ const OrderPage = () => {
 };
 
 export default OrderPage;
+
+//Pagina para listar la orden individual, editar e imprimir. 

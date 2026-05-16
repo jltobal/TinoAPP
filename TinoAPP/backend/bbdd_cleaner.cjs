@@ -34,3 +34,5 @@ db.serialize(() => {
         db.close();
     });
 });
+
+// Limpiador de base de datos. Elimina el contenido de las tablas. 
