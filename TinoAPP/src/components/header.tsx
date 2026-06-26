@@ -17,6 +17,7 @@ const Header = () => {
       </Link>
 
       <nav className="flex gap-4">
+        {/* BOTÓN: CREAR ORDEN */}
         <Link 
           to="/ordersystem" 
           className="px-4 py-2 bg-orange-700 hover:bg-orange-600 text-white text-xs font-bold uppercase tracking-widest rounded-lg transition-colors"
@@ -24,11 +25,20 @@ const Header = () => {
           Crear Orden
         </Link>
 
+        {/* BOTÓN: VER ÓRDENES */}
         <Link 
           to="/list" 
           className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-xs font-bold uppercase tracking-widest rounded-lg transition-colors border border-gray-700"
         >
           Ver Órdenes
+        </Link>
+
+        {/* BOTÓN NUEVO: GESTIÓN DE MENÚ */}
+        <Link 
+          to="/menu" 
+          className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-xs font-bold uppercase tracking-widest rounded-lg transition-colors border border-gray-700"
+        >
+          🍔 Menú
         </Link>
       </nav>
     </header>

@@ -2,34 +2,27 @@ import React, { useEffect, useState } from 'react';
 
 interface MenuItem {
   id: number;
-  name: string;
+  descripcion: string;
   price: number;
 }
-
-// PAGINA PARA LISTAR Y EDITAR EL MENU - AUTOGESTION DEL USUARIO -
-
-//PAGINA INCOMPLETA - EN DESAROLLO
 
 const Menu = () => {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<Partial<MenuItem>>({});
-  const [newItem, setNewItem] = useState({ name: '', price: 0 });
+  const [newItem, setNewItem] = useState({ descripcion: '', price: 0 });
 
-  // Obtener todos los items del menú
   const fetchMenu = async () => {
     try {
       const res = await fetch('http://localhost:8000/api/menu');
       if (!res.ok) throw new Error('Error al obtener el menú');
       const data = await res.json();
-      
-      // Orden creciente: de menor ID arriba a mayor ID abajo
       const sortedData = [...data].sort((a, b) => a.id - b.id);
       setItems(sortedData);
       setLoading(false);
     } catch (err) {
-      console.error("Error en el GET del menú:", err);
+      console.error(err);
       setLoading(false);
     }
   };
@@ -47,11 +40,11 @@ const Menu = () => {
         body: JSON.stringify(newItem),
       });
       if (res.ok) {
-        setNewItem({ name: '', price: 0 });
+        setNewItem({ descripcion: '', price: 0 });
         fetchMenu();
       }
     } catch (err) {
-      console.error("Error al agregar item:", err);
+      console.error(err);
     }
   };
 
@@ -72,7 +65,7 @@ const Menu = () => {
         fetchMenu();
       }
     } catch (err) {
-      console.error("Error al actualizar:", err);
+      console.error(err);
     }
   };
 
@@ -84,7 +77,7 @@ const Menu = () => {
       });
       if (res.ok) fetchMenu();
     } catch (err) {
-      console.error("Error al eliminar:", err);
+      console.error(err);
     }
   };
 
@@ -101,8 +94,8 @@ const Menu = () => {
             <label className="text-[10px] text-orange-500 font-bold uppercase ml-1">Nombre / Descripción</label>
             <input 
               type="text" 
-              value={newItem.name}
-              onChange={(e) => setNewItem({...newItem, name: e.target.value})}
+              value={newItem.descripcion}
+              onChange={(e) => setNewItem({...newItem, descripcion: e.target.value})}
               className="w-full bg-[#0f0f0f] border border-gray-700 rounded-lg p-2.5 text-sm focus:border-orange-500 outline-none"
               placeholder="Ej: Hamburguesa Simple"
               required
@@ -137,10 +130,11 @@ const Menu = () => {
           <tbody className="text-sm">
             {loading ? (
               <tr><td colSpan={4} className="p-10 text-center text-gray-600">Sincronizando con base de datos...</td></tr>
+            ) : items.length === 0 ? (
+              <tr><td colSpan={4} className="p-10 text-center text-gray-500">No hay productos cargados en el menú.</td></tr>
             ) : (
               items.map((item) => (
                 <tr key={item.id} className="border-b border-gray-800/50 hover:bg-white/5 transition-colors">
-                  {/* ID NO EDITABLE */}
                   <td className="p-4 font-mono text-xs text-orange-500/70 font-bold">
                     #{item.id.toString().padStart(3, '0')}
                   </td>
@@ -149,12 +143,12 @@ const Menu = () => {
                     {editingId === item.id ? (
                       <input 
                         type="text" 
-                        value={editForm.name} 
-                        onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                        value={editForm.descripcion || ''} 
+                        onChange={(e) => setEditForm({...editForm, descripcion: e.target.value})}
                         className="bg-black border border-orange-500/50 rounded px-3 py-1.5 w-full outline-none text-white"
                       />
                     ) : (
-                      <span className="font-semibold text-gray-300">{item.name}</span>
+                      <span className="font-semibold text-gray-300">{item.descripcion}</span>
                     )}
                   </td>
 
@@ -162,7 +156,7 @@ const Menu = () => {
                     {editingId === item.id ? (
                       <input 
                         type="number" 
-                        value={editForm.price} 
+                        value={editForm.price || 0} 
                         onChange={(e) => setEditForm({...editForm, price: Number(e.target.value)})}
                         className="bg-black border border-orange-500/50 rounded px-3 py-1.5 w-28 text-right outline-none text-white"
                       />

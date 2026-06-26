@@ -17,10 +17,42 @@ const db = new sqlite3.Database('./tinoapp.db', (err) => {
 });
 
 db.serialize(() => {
-    db.run("PRAGMA foreign_keys = ON");
+    db.run("PRAGMA foreign_keys = OFF");
+    
     db.run(`CREATE TABLE IF NOT EXISTS menu (id INTEGER PRIMARY KEY AUTOINCREMENT, descripcion TEXT NOT NULL, price REAL NOT NULL)`);
     db.run(`CREATE TABLE IF NOT EXISTS orders (id INTEGER PRIMARY KEY AUTOINCREMENT, total_price REAL DEFAULT 0, date DATETIME DEFAULT CURRENT_TIMESTAMP)`);
-    db.run(`CREATE TABLE IF NOT EXISTS order_items (id INTEGER PRIMARY KEY AUTOINCREMENT, order_id INTEGER, menu_id INTEGER, cantidad INTEGER NOT NULL DEFAULT 1, FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE, FOREIGN KEY (menu_id) REFERENCES menu(id))`);
+    
+    db.run(`CREATE TABLE IF NOT EXISTS order_items_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, 
+        order_id INTEGER, 
+        menu_id INTEGER, 
+        cantidad INTEGER NOT NULL DEFAULT 1, 
+        FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE, 
+        FOREIGN KEY (menu_id) REFERENCES menu(id) ON DELETE CASCADE
+    )`);
+
+    db.run(`PRAGMA table_info(order_items)`, (err, rows) => {
+        if (!err && rows && rows.length > 0) {
+            db.run(`INSERT INTO order_items_new (id, order_id, menu_id, cantidad) SELECT id, order_id, menu_id, cantidad FROM order_items`, () => {
+                db.run(`DROP TABLE order_items`, () => {
+                    db.run(`ALTER TABLE order_items_new RENAME TO order_items`, () => {
+                        db.run("PRAGMA foreign_keys = ON");
+                    });
+                });
+            });
+        } else {
+            db.run(`ALTER TABLE order_items_new RENAME TO order_items`, () => {
+                db.run("PRAGMA foreign_keys = ON");
+            });
+        }
+    });
+});
+
+app.get('/api/menu', (req, res) => {
+    db.all("SELECT * FROM menu", [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows || []);
+    });
 });
 
 app.get('/api/menu/:id', (req, res) => {
@@ -28,6 +60,31 @@ app.get('/api/menu/:id', (req, res) => {
     db.get("SELECT * FROM menu WHERE id = ?", [id], (err, row) => {
         if (err) return res.status(500).json({ error: err.message });
         row ? res.json(row) : res.status(404).json({ message: "No encontrado" });
+    });
+});
+
+app.post('/api/menu', (req, res) => {
+    const { descripcion, price } = req.body;
+    db.run(`INSERT INTO menu (descripcion, price) VALUES (?, ?)`, [descripcion, price], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ success: true, id: this.lastID });
+    });
+});
+
+app.put('/api/menu/:id', (req, res) => {
+    const { id } = req.params;
+    const { descripcion, price } = req.body;
+    db.run(`UPDATE menu SET descripcion = ?, price = ? WHERE id = ?`, [descripcion, price, id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ success: true });
+    });
+});
+
+app.delete('/api/menu/:id', (req, res) => {
+    const { id } = req.params;
+    db.run(`DELETE FROM menu WHERE id = ?`, [id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ success: true });
     });
 });
 
@@ -87,5 +144,3 @@ app.put('/api/orders/:id', (req, res) => {
 });
 
 app.listen(PORT, () => console.log(`Backend en puerto ${PORT}`));
-
-//Inicia la base de datos y establece los endpoints.
