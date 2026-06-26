@@ -69,18 +69,6 @@ const Menu = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm("¿Confirmas la eliminación de este producto?")) return;
-    try {
-      const res = await fetch(`http://localhost:8000/api/menu/${id}`, {
-        method: 'DELETE',
-      });
-      if (res.ok) fetchMenu();
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   return (
     <div className="h-full bg-[#121212] text-white p-6 overflow-y-auto">
       <h2 className="text-2xl font-black mb-8 uppercase tracking-widest text-orange-600 text-center">
@@ -175,7 +163,6 @@ const Menu = () => {
                       ) : (
                         <>
                           <button onClick={() => startEdit(item)} className="opacity-60 hover:opacity-100 hover:text-blue-400 transition-all" title="Editar">✏️</button>
-                          <button onClick={() => handleDelete(item.id)} className="opacity-60 hover:opacity-100 hover:text-red-500 transition-all" title="Eliminar">🗑️</button>
                         </>
                       )}
                     </div>

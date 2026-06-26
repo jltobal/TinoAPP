@@ -17,11 +17,12 @@ function OrderChecker() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderToPrint, setOrderToPrint] = useState<any>(null);
 
-  const lastInputRef = useRef<HTMLInputElement>(null);
+  const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   useEffect(() => {
-    lastInputRef.current?.focus();
-  }, [items.length]);
+    const firstInput = inputRefs.current[`id-0`];
+    if (firstInput) firstInput.focus();
+  }, []);
 
   useEffect(() => {
     if (orderToPrint) {
@@ -29,6 +30,7 @@ function OrderChecker() {
         window.print();
         setOrderToPrint(null);
         setItems([{ id: '', descripcion: '', cantidad: '', precio: '' }]);
+        setTimeout(() => inputRefs.current[`id-0`]?.focus(), 100);
       }, 700);
       return () => clearTimeout(timer);
     }
@@ -43,7 +45,7 @@ function OrderChecker() {
         const newItems = [...items];
         newItems[index].descripcion = product.Name || product.name || product.descripcion || "Sin nombre";
         newItems[index].precio = (product.Price || product.price || 0).toString();
-        // Si la cantidad está vacía al validar, ponemos 1 por defecto
+        
         if (!newItems[index].cantidad || newItems[index].cantidad === '0') {
           newItems[index].cantidad = '1';
         }
@@ -56,14 +58,42 @@ function OrderChecker() {
     }
   };
 
-  const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
+  const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>, index: number, field: 'id' | 'cantidad') => {
     if (e.key === 'Enter') {
-      const code = items[index].id;
-      if (code.trim() !== '') {
-        const isValid = await validateProduct(index, code);
-        // Si el producto es válido y estamos en la última fila, creamos una nueva
-        if (isValid && index === items.length - 1) {
+      e.preventDefault();
+
+      if (field === 'id') {
+        const code = items[index].id;
+        if (code.trim() !== '') {
+          const isValid = await validateProduct(index, code);
+          if (isValid) {
+            setTimeout(() => {
+              const qtyInput = inputRefs.current[`cantidad-${index}`];
+              if (qtyInput) {
+                qtyInput.focus();
+                qtyInput.select();
+              }
+            }, 50);
+          }
+        }
+      } 
+      
+      else if (field === 'cantidad') {
+        const currentQty = items[index].cantidad;
+        if (!currentQty || currentQty === '0') {
+          const newItems = [...items];
+          newItems[index].cantidad = '1';
+          setItems(newItems);
+        }
+
+        if (index === items.length - 1) {
           setItems(prev => [...prev, { id: '', descripcion: '', cantidad: '', precio: '' }]);
+          
+          setTimeout(() => {
+            inputRefs.current[`id-${index + 1}`]?.focus();
+          }, 50);
+        } else {
+          inputRefs.current[`id-${index + 1}`]?.focus();
         }
       }
     }
@@ -86,7 +116,6 @@ function OrderChecker() {
     };
 
     try {
-      // 1. Guardar
       const response = await fetch('http://localhost:8000/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -143,33 +172,48 @@ function OrderChecker() {
                 background: white;
                 color: black;
                 font-family: 'Courier New', Courier, monospace;
-                font-size: 14px;
+                font-size: 16px;
+                font-weight: bold;
             }
 
             .ticket-print-area * { visibility: visible !important; }
             .ticket-header { text-align: center; margin-bottom: 10px; }
             .ticket-logo { width: 160px; margin: 0 auto; display: block; }
             
-            .ticket-id { font-weight: bold; font-size: 16px; margin: 15px 0; text-align: left; }
+            /* CORRECCIÓN: Centrado horizontal para el número de orden */
+            .ticket-id { 
+                font-weight: 900; 
+                font-size: 20px; 
+                margin: 15px 0; 
+                text-align: center; 
+                border: 1px solid black; 
+                padding: 4px; 
+            }
             
             .ticket-table { width: 100%; border-collapse: collapse; }
-            .ticket-table td { padding: 4px 0; vertical-align: top; text-align: left; }
-            .col-desc { width: 70%; }
-            .col-val { width: 30%; text-align: right; }
+            .ticket-table td { padding: 6px 0; vertical-align: top; text-align: left; font-weight: bold; }
+            .col-desc { width: 65%; }
+            .col-val { width: 35%; text-align: right; }
 
-            .ticket-divider { border-top: 1px dashed black; margin: 10px 0; }
+            .ticket-divider { border-top: 2px dashed black; margin: 12px 0; }
             
             .ticket-total-row {
                 display: flex !important;
                 justify-content: space-between;
                 align-items: center;
-                font-weight: bold;
+                font-weight: 900;
                 margin-top: 5px;
             }
-            .total-dots { flex-grow: 1; border-bottom: 1px solid black; margin: 0 8px; position: relative; top: -4px; }
-            .total-amount { font-size: 20px; }
+            .total-dots { flex-grow: 1; border-bottom: 2px solid black; margin: 0 8px; position: relative; top: -4px; }
+            .total-amount { font-size: 24px; }
 
-            .ticket-footer { text-align: left; font-size: 11px; margin-top: 20px; }
+            /* CORRECCIÓN: Centrado horizontal para el pie de página completo */
+            .ticket-footer { 
+                text-align: center; 
+                font-size: 12px; 
+                margin-top: 20px; 
+                font-weight: bold; 
+            }
         }
         `}
       </style>
@@ -190,12 +234,12 @@ function OrderChecker() {
           {items.map((item, index) => (
             <div key={index} className="grid grid-cols-[100px_1fr_100px_120px] gap-4 items-center">
               <input
-                ref={index === items.length - 1 ? lastInputRef : null}
+                ref={el => { inputRefs.current[`id-${index}`] = el; }}
                 type="text"
                 value={item.id}
                 placeholder="0"
                 onChange={(e) => handleChange(index, 'id', e.target.value)}
-                onKeyDown={(e) => handleKeyDown(e, index)}
+                onKeyDown={(e) => handleKeyDown(e, index, 'id')}
                 className="bg-gray-800 border border-gray-700 rounded p-3 text-center focus:border-orange-500 focus:outline-none transition-colors"
               />
               <input
@@ -205,11 +249,12 @@ function OrderChecker() {
                 className="bg-[#141414] border border-gray-800 text-gray-400 rounded p-3 italic cursor-default"
               />
               <input
+                ref={el => { inputRefs.current[`cantidad-${index}`] = el; }}
                 type="text"
                 value={item.cantidad}
                 placeholder="1"
                 onChange={(e) => handleChange(index, 'cantidad', e.target.value)}
-                onKeyDown={(e) => handleKeyDown(e, index)} // AHORA FUNCIONA EL ENTER AQUÍ TAMBIÉN
+                onKeyDown={(e) => handleKeyDown(e, index, 'cantidad')}
                 className="bg-gray-800 border border-gray-700 rounded p-3 text-center focus:border-orange-500 focus:outline-none transition-colors"
               />
               <div className="relative">
@@ -228,8 +273,9 @@ function OrderChecker() {
         <button
           disabled={isSubmitting}
           onClick={handleFinalizeOrder}
-          className={`mt-10 w-full font-black py-5 px-6 rounded-lg uppercase tracking-widest transition-all text-lg ${isSubmitting ? 'bg-gray-700 cursor-not-allowed' : 'bg-orange-600 hover:bg-orange-500 text-white shadow-[0_0_20px_rgba(234,88,12,0.3)]'
-            }`}
+          className={`mt-10 w-full font-black py-5 px-6 rounded-lg uppercase tracking-widest transition-all text-lg ${
+            isSubmitting ? 'bg-gray-700 cursor-not-allowed' : 'bg-orange-600 hover:bg-orange-500 text-white shadow-[0_0_20px_rgba(234,88,12,0.3)]'
+          }`}
         >
           {isSubmitting ? "Guardando..." : "Finalizar Orden"}
         </button>
@@ -241,7 +287,7 @@ function OrderChecker() {
             <img src={logoPrinter} className="ticket-logo" alt="Tomi's Food Truck" />
           </div>
 
-          <div className="ticket-id">ORDEN#{orderToPrint.id}</div>
+          <div className="ticket-id">ORDEN #{orderToPrint.id}</div>
 
           <table className="ticket-table">
             <tbody>
@@ -263,10 +309,10 @@ function OrderChecker() {
           </div>
 
           <div className="ticket-footer">
-              <div>Documento no válido como factura</div>
-              <div style={{ marginTop: '10px' }}>TOMI'S FOOD TRUCK</div>
-              <div>Olavarría, Buenos Aires</div>
-              <div style={{ marginTop: '5px' }}>*** GRACIAS POR SU COMPRA ***</div>
+            <div>Documento no válido como factura</div>
+            <div style={{ marginTop: '10px' }}>EL CLASICO DE SIEMPRE</div>
+            <div>Olavarría, Buenos Aires</div>
+            <div style={{ marginTop: '5px' }}>*** GRACIAS POR SU COMPRA ***</div>
           </div>
         </div>
       )}
