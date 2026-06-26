@@ -6,7 +6,7 @@ interface OrderItem {
   id: string;
   descripcion: string;
   cantidad: string;
-  precio: string;
+  precio: string; // Guarda siempre el precio UNITARIO base
 }
 
 function OrderChecker() {
@@ -36,6 +36,14 @@ function OrderChecker() {
     }
   }, [orderToPrint]);
 
+  // FIX 2: Cálculo del Total General de la orden en tiempo real
+  const totalOrden = items.reduce((acc, item) => {
+    if (!item.id.trim() || !item.precio) return acc;
+    const parsedQty = parseInt(item.cantidad, 10);
+    const currentQty = !isNaN(parsedQty) && parsedQty > 0 ? parsedQty : 1;
+    return acc + (parseFloat(item.precio) * currentQty);
+  }, 0);
+
   const validateProduct = async (index: number, code: string) => {
     if (!code) return false;
     try {
@@ -44,7 +52,7 @@ function OrderChecker() {
         const product = await response.json();
         const newItems = [...items];
         newItems[index].descripcion = product.Name || product.name || product.descripcion || "Sin nombre";
-        newItems[index].precio = (product.Price || product.price || 0).toString();
+        newItems[index].precio = (product.Price || product.price || product.precio || 0).toString();
         
         if (!newItems[index].cantidad || newItems[index].cantidad === '0') {
           newItems[index].cantidad = '1';
@@ -79,47 +87,55 @@ function OrderChecker() {
       } 
       
       else if (field === 'cantidad') {
-        const currentQty = items[index].cantidad;
-        if (!currentQty || currentQty === '0') {
-          const newItems = [...items];
-          newItems[index].cantidad = '1';
-          setItems(newItems);
-        }
+        const currentQty = items[index].cantidad.trim();
+        const parsedQty = parseInt(currentQty, 10);
+        const finalQty = (!isNaN(parsedQty) && parsedQty > 0) ? parsedQty.toString() : '1';
+        
+        setItems(prevItems => {
+          const updatedItems = [...prevItems];
+          updatedItems[index].cantidad = finalQty;
 
-        if (index === items.length - 1) {
-          setItems(prev => [...prev, { id: '', descripcion: '', cantidad: '', precio: '' }]);
-          
-          setTimeout(() => {
-            inputRefs.current[`id-${index + 1}`]?.focus();
-          }, 50);
-        } else {
+          if (index === updatedItems.length - 1) {
+            return [...updatedItems, { id: '', descripcion: '', cantidad: '', precio: '' }];
+          }
+          return updatedItems;
+        });
+        
+        setTimeout(() => {
           inputRefs.current[`id-${index + 1}`]?.focus();
-        }
+        }, 50);
       }
     }
   };
 
   const handleFinalizeOrder = async () => {
-    const validItems = items.filter(item => item.id.trim() !== '' && item.descripcion !== '');
+    const validItems = items
+      .filter(item => item.id.trim() !== '' && item.descripcion !== '')
+      .map(item => {
+        const parsedQty = parseInt(item.cantidad, 10);
+        const finalQty = !isNaN(parsedQty) && parsedQty > 0 ? parsedQty : 1;
+        return {
+          ...item,
+          cantidad: finalQty.toString()
+        };
+      });
+
     if (validItems.length === 0) return;
 
     setIsSubmitting(true);
-    const total = validItems.reduce((acc, item) => acc + (parseFloat(item.precio) * parseInt(item.cantidad)), 0);
-
-    const orderData = {
-      total_price: total,
-      date: new Date().toISOString(),
-      items: validItems.map(item => ({
-        menu_id: parseInt(item.id),
-        quantity: parseInt(item.cantidad)
-      }))
-    };
 
     try {
       const response = await fetch('http://localhost:8000/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderData),
+        body: JSON.stringify({
+          total_price: totalOrden, // Usamos directamente el total ya calculado
+          date: new Date().toISOString(),
+          items: validItems.map(item => ({
+            menu_id: parseInt(item.id, 10),
+            quantity: parseInt(item.cantidad, 10)
+          }))
+        }),
       });
 
       if (response.ok) {
@@ -133,7 +149,7 @@ function OrderChecker() {
         setOrderToPrint({
           id: (lastOrder.id).toString().padStart(4, '0'),
           items: validItems,
-          total: total,
+          total: totalOrden,
           date: new Date().toLocaleString('es-AR')
         });
       }
@@ -165,54 +181,42 @@ function OrderChecker() {
                 visibility: visible !important;
                 display: block !important;
                 position: absolute;
-                left: 0; right: 0;
-                margin: 0 auto;
+                left: 0; top: 0;
                 width: 72mm;
                 padding: 4mm;
                 background: white;
                 color: black;
                 font-family: 'Courier New', Courier, monospace;
-                font-size: 16px;
-                font-weight: bold;
+                font-size: 12px;
+                font-weight: 900 !important;
             }
 
             .ticket-print-area * { visibility: visible !important; }
             .ticket-header { text-align: center; margin-bottom: 10px; }
-            .ticket-logo { width: 160px; margin: 0 auto; display: block; }
+            .ticket-logo { width: 140px; display: block; margin: 0 auto; }
             
-            /* CORRECCIÓN: Centrado horizontal para el número de orden */
-            .ticket-id { 
-                font-weight: 900; 
-                font-size: 20px; 
-                margin: 15px 0; 
-                text-align: center; 
-                border: 1px solid black; 
-                padding: 4px; 
-            }
+            .ticket-table { width: 100% !important; display: table !important; border-collapse: collapse; margin-top: 5px; }
+            .ticket-table tr { display: table-row !important; }
             
-            .ticket-table { width: 100%; border-collapse: collapse; }
-            .ticket-table td { padding: 6px 0; vertical-align: top; text-align: left; font-weight: bold; }
-            .col-desc { width: 65%; }
-            .col-val { width: 35%; text-align: right; }
-
-            .ticket-divider { border-top: 2px dashed black; margin: 12px 0; }
-            
-            .ticket-total-row {
-                display: flex !important;
-                justify-content: space-between;
-                align-items: center;
+            .ticket-table td { 
+                display: table-cell !important; 
+                padding: 2px 0; 
+                vertical-align: top; 
                 font-weight: 900;
-                margin-top: 5px;
+                -webkit-text-stroke: 0.3px black;
             }
-            .total-dots { flex-grow: 1; border-bottom: 2px solid black; margin: 0 8px; position: relative; top: -4px; }
-            .total-amount { font-size: 24px; }
+            .col-qty { width: 20%; text-align: left; }
+            .col-desc { width: 80%; text-align: left; }
 
-            /* CORRECCIÓN: Centrado horizontal para el pie de página completo */
+            .ticket-divider { border-top: 1px dashed black; margin: 8px 0; }
+            
             .ticket-footer { 
                 text-align: center; 
-                font-size: 12px; 
-                margin-top: 20px; 
-                font-weight: bold; 
+                font-size: 10px; 
+                margin-top: 15px; 
+                line-height: 1.4;
+                font-weight: 900;
+                -webkit-text-stroke: 0.2px black;
             }
         }
         `}
@@ -231,49 +235,69 @@ function OrderChecker() {
             <span>Precio</span>
           </div>
 
-          {items.map((item, index) => (
-            <div key={index} className="grid grid-cols-[100px_1fr_100px_120px] gap-4 items-center">
-              <input
-                ref={el => { inputRefs.current[`id-${index}`] = el; }}
-                type="text"
-                value={item.id}
-                placeholder="0"
-                onChange={(e) => handleChange(index, 'id', e.target.value)}
-                onKeyDown={(e) => handleKeyDown(e, index, 'id')}
-                className="bg-gray-800 border border-gray-700 rounded p-3 text-center focus:border-orange-500 focus:outline-none transition-colors"
-              />
-              <input
-                type="text"
-                value={item.descripcion}
-                readOnly
-                className="bg-[#141414] border border-gray-800 text-gray-400 rounded p-3 italic cursor-default"
-              />
-              <input
-                ref={el => { inputRefs.current[`cantidad-${index}`] = el; }}
-                type="text"
-                value={item.cantidad}
-                placeholder="1"
-                onChange={(e) => handleChange(index, 'cantidad', e.target.value)}
-                onKeyDown={(e) => handleKeyDown(e, index, 'cantidad')}
-                className="bg-gray-800 border border-gray-700 rounded p-3 text-center focus:border-orange-500 focus:outline-none transition-colors"
-              />
-              <div className="relative">
-                <span className="absolute left-3 top-3 text-gray-600">$</span>
+          {items.map((item, index) => {
+            const parsedQty = parseInt(item.cantidad, 10);
+            const currentQty = !isNaN(parsedQty) && parsedQty > 0 ? parsedQty : 1;
+            const rowSubtotal = parseFloat(item.precio || '0') * currentQty;
+
+            return (
+              <div key={index} className="grid grid-cols-[100px_1fr_100px_120px] gap-4 items-center">
+                <input
+                  ref={el => { inputRefs.current[`id-${index}`] = el; }}
+                  type="text"
+                  value={item.id}
+                  placeholder="0"
+                  onChange={(e) => handleChange(index, 'id', e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(e, index, 'id')}
+                  className="bg-gray-800 border border-gray-700 rounded p-3 text-center focus:border-orange-500 focus:outline-none transition-colors"
+                />
                 <input
                   type="text"
-                  value={item.precio}
+                  value={item.descripcion}
                   readOnly
-                  className="w-full bg-[#141414] border border-gray-800 text-gray-500 rounded p-3 pl-7 text-right cursor-default"
+                  className="bg-[#141414] border border-gray-800 text-gray-400 rounded p-3 italic cursor-default"
                 />
+                <input
+                  ref={el => { inputRefs.current[`cantidad-${index}`] = el; }}
+                  type="text"
+                  value={item.cantidad}
+                  placeholder="1"
+                  onChange={(e) => handleChange(index, 'cantidad', e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(e, index, 'cantidad')}
+                  className="bg-gray-800 border border-gray-700 rounded p-3 text-center focus:border-orange-500 focus:outline-none transition-colors"
+                />
+                <div className="relative">
+                  <span className="absolute left-3 top-3 text-gray-600">$</span>
+                  <input
+                    type="text"
+                    value={rowSubtotal > 0 ? rowSubtotal.toString() : item.precio}
+                    readOnly
+                    className="w-full bg-[#141414] border border-gray-800 text-gray-500 rounded p-3 pl-7 text-right cursor-default"
+                  />
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
+        </div>
+
+        {/* FIX 2: Bloque visual para el valor Total de la Orden */}
+        <div className="mt-8 pt-4 border-t border-gray-800 flex justify-end items-center gap-4">
+          <span className="text-sm font-bold uppercase tracking-wider text-gray-400">Total Orden:</span>
+          <div className="relative w-44">
+            <span className="absolute left-4 top-3 text-orange-500 font-bold">$</span>
+            <input
+              type="text"
+              value={totalOrden.toLocaleString('es-AR')}
+              readOnly
+              className="w-full bg-[#111] border border-orange-900/40 text-orange-500 text-lg font-black rounded-lg p-3 pl-8 text-right cursor-default shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)]"
+            />
+          </div>
         </div>
 
         <button
           disabled={isSubmitting}
           onClick={handleFinalizeOrder}
-          className={`mt-10 w-full font-black py-5 px-6 rounded-lg uppercase tracking-widest transition-all text-lg ${
+          className={`mt-4 w-full font-black py-5 px-6 rounded-lg uppercase tracking-widest transition-all text-lg ${
             isSubmitting ? 'bg-gray-700 cursor-not-allowed' : 'bg-orange-600 hover:bg-orange-500 text-white shadow-[0_0_20px_rgba(234,88,12,0.3)]'
           }`}
         >
@@ -284,17 +308,19 @@ function OrderChecker() {
       {orderToPrint && (
         <div className="ticket-print-area ticket-visual-hidden">
           <div className="ticket-header">
-            <img src={logoPrinter} className="ticket-logo" alt="Tomi's Food Truck" />
+            <img src={logoPrinter} className="ticket-logo" alt="Logo" />
+            <div style={{ fontSize: '16px', fontWeight: 'bold', marginTop: '5px', WebkitTextStroke: '0.4px black' }}>ORDEN #{orderToPrint.id}</div>
+            <div style={{ fontSize: '10px' }}>{orderToPrint.date}</div>
           </div>
 
-          <div className="ticket-id">ORDEN #{orderToPrint.id}</div>
+          <div className="ticket-divider"></div>
 
           <table className="ticket-table">
             <tbody>
               {orderToPrint.items.map((item: any, idx: number) => (
                 <tr key={idx}>
-                  <td className="col-desc">{item.cantidad} x {item.descripcion}</td>
-                  <td className="col-val">${(parseFloat(item.precio) * parseInt(item.cantidad)).toLocaleString('es-AR')}</td>
+                  <td className="col-qty">{item.cantidad} x</td>
+                  <td className="col-desc">{item.descripcion}</td>
                 </tr>
               ))}
             </tbody>
@@ -302,15 +328,13 @@ function OrderChecker() {
 
           <div className="ticket-divider"></div>
 
-          <div className="ticket-total-row">
-            <span>TOTAL</span>
-            <div className="total-dots"></div>
-            <span className="total-amount">${orderToPrint.total.toLocaleString('es-AR')}</span>
+          <div style={{ textAlign: 'right', fontWeight: 'bold', WebkitTextStroke: '0.4px black' }}>
+            <span>TOTAL: ${orderToPrint.total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
           </div>
 
           <div className="ticket-footer">
             <div>Documento no válido como factura</div>
-            <div style={{ marginTop: '10px' }}>EL CLASICO DE SIEMPRE</div>
+            <div style={{ marginTop: '5px' }}>EL CLASICO DE SIEMPRE</div>
             <div>Olavarría, Buenos Aires</div>
             <div style={{ marginTop: '5px' }}>*** GRACIAS POR SU COMPRA ***</div>
           </div>

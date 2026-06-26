@@ -121,8 +121,15 @@ app.post('/api/orders', (req, res) => {
     db.run(`INSERT INTO orders (total_price) VALUES (?)`, [total_price], function(err) {
         if (err) return res.status(500).json({ error: err.message });
         const orderId = this.lastID;
+        
         const stmt = db.prepare(`INSERT INTO order_items (order_id, menu_id, cantidad) VALUES (?, ?, ?)`);
-        items.forEach(item => stmt.run(orderId, item.id || item.menu_id, item.cantidad || 1));
+        
+        // CORRECCIÓN: Evaluamos tanto item.cantidad como item.quantity para asegurar el valor real
+        items.forEach(item => {
+            const qty = item.cantidad || item.quantity || 1;
+            stmt.run(orderId, item.id || item.menu_id, qty);
+        });
+        
         stmt.finalize(() => res.json({ success: true, orderId }));
     });
 });

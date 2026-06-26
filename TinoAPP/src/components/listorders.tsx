@@ -256,7 +256,7 @@ const ListOrders = () => {
           <div className="ticket-footer">
             <div>- Documento de control -</div>
             <div>- No valido como factura -</div>
-            <div style={{ marginTop: '10px' }}>TinoAPP v2.0</div>
+            <div style={{ marginTop: '10px' }}>TinoAPP v2.4</div>
           </div>
         </div>
       )}
